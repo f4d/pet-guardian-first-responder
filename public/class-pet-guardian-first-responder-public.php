@@ -67,9 +67,9 @@ class Pet_Guardian_First_Responder_Public {
 		$this->alertGuardians($str,$pets);
 	}
 	public function createMessage($entry) {
-		$name = $entry['6'];
-		$msg = $entry['10'].''.$entry['8'];
-		$str = "Pet Guardian Alert! Message from First Responder $name: $msg";
+		$name = $entry['6.2'].' '.$entry['6.3'].' '.$entry['6.6'];
+		$msg = $entry['10'].'. '.$entry['8'];
+		$str = "Pet Guardian Alert! Message from First Responder $name, Phone:$msg";
 		return $str;
 	}
 	public function twilioMessage($str,$to) {
@@ -122,7 +122,7 @@ class Pet_Guardian_First_Responder_Public {
 					try {
 					    $this->twilioMessage($str,$g->mobile_phone);
 					} catch (Exception $e) {
-					    echo 'Caught exception: ',  $e->getMessage(), "\n";
+					    //echo 'Caught exception: ',  $e->getMessage(), "\n";
 					}
 				}
 			}
