@@ -67,7 +67,6 @@ class Pet_Guardian_First_Responder_Public {
 		$to = $this->scrubPhone('1'.$entry['11']);
 		//alert primary, then guardians
 		$this->twilioMessage($str." ... $testStr",$to);
-		//print_r($pets);
 		$this->alertGuardians($str,$pets);
 	}
 	public function createMessage($entry) {
@@ -109,10 +108,11 @@ class Pet_Guardian_First_Responder_Public {
 		return $pet;
 	}
 	public function alertGuardians($str,$pets) {
+		//print_r($pets);
 		foreach($pets as $p) {
 			foreach($p->guardians as $g) {
 				if($g->response==='1') {
-					//$this->twilioMessage($str,$g->mobile_phone);
+					$this->twilioMessage($str,$g->mobile_phone);
 				}
 			}
 		}
