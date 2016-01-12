@@ -61,6 +61,7 @@ class Pet_Guardian_First_Responder_Public {
 			$str = "$i";
 			array_push($this->getPetData($entry[$str]));
 		}
+		$str = this->createMessage($entry);
 		//$phone = $this->scrubPhone('1'.$entry['11']);
 		$phone = '+17736092730';
 		//alert primary, then guardians
