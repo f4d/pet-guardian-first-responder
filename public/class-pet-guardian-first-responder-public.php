@@ -67,8 +67,8 @@ class Pet_Guardian_First_Responder_Public {
 		$to = $this->scrubPhone('1'.$entry['11']);
 		//alert primary, then guardians
 		$this->twilioMessage($str." ... $testStr",$to);
-		print_r($pets);
-		//$this->alertGuardians($str,$pets);
+		//print_r($pets);
+		$this->alertGuardians($str,$pets);
 	}
 	public function createMessage($entry) {
 		$name = $entry['6'];
