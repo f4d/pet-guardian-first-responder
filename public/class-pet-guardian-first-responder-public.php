@@ -58,9 +58,6 @@ class Pet_Guardian_First_Responder_Public {
 		$user = $query->results[0];
 		$testStr = $user->ID;
 		$data = get_user_meta($user->ID);
-		print_r($data);
-		print_r(get_user_meta($85));
-		print_r(user);
 		$pets = array();
 		for($i=1;$i<6;$i++) {
 			$str = "$i";
@@ -70,8 +67,7 @@ class Pet_Guardian_First_Responder_Public {
 		$to = $this->scrubPhone('1'.$entry['11']);
 		//alert primary, then guardians
 		$this->twilioMessage($str." ... $testStr",$to);
-
-
+		print_r($pets);
 		//$this->alertGuardians($str,$pets);
 	}
 	public function createMessage($entry) {
@@ -97,17 +93,17 @@ class Pet_Guardian_First_Responder_Public {
 		$user = new WP_User_Query( array( 'meta_key' => 'pet_1_id', 'meta_value' => '1867793849' ) );
 		return $user;
 	}
-	public function getPetData($petNum,$user) {
+	public function getPetData($petNum,$data) {
 		$pet = new Pet($petNum);
 		for($i=1;$i<6;$i++) {
 			$suffixStr = "p{$petNum}_guardian_{$i}_";
 			$hash = array();
-			$hash['prefix'] = "{$suffixStr}prefix";
-			$hash['first_name'] = "{$suffixStr}first_name";
-			$hash['last_name'] = "{$suffixStr}last_name";
-			$hash['email'] = "{$suffixStr}email";
-			$hash['mobile_phone'] = "{$suffixStr}mobile_phone";
-			$hash['response'] = "{$suffixStr}response";
+			$hash['prefix'] = $data["{$suffixStr}prefix"];
+			$hash['first_name'] = $data["{$suffixStr}first_name"];
+			$hash['last_name'] = $data["{$suffixStr}last_name"];
+			$hash['email'] = $data["{$suffixStr}email"];
+			$hash['mobile_phone'] = $data["{$suffixStr}mobile_phone"];
+			$hash['response'] = $data["{$suffixStr}response"];
 			$pet->setGuardian($i,$data);
 		}
 		return $pet;
