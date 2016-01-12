@@ -48,24 +48,22 @@ class Pet_Guardian_First_Responder_Public {
 	 * @param      string    $version    The version of this plugin.
 	 */
 	public function __construct( $plugin_name, $version ) {
-
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
-
 	}
 
 	public function filterGform($entry) {
 		$user = $this->getUserByPet($entry['1']);
 		$pets = array();
-		for($i=0;$i<5;$i++) {
+		for($i=1;$i<6;$i++) {
 			$str = "$i";
-			array_push($this->getPetData($entry[$str]));
+			$pets[$str] = $this->getPetData($entry[$str]);
 		}
-		$str = this->createMessage($entry);
+		$str = $this->createMessage($entry);
 		//$phone = $this->scrubPhone('1'.$entry['11']);
-		$phone = '+17736092730';
+		$to = '+17736092730';
 		//alert primary, then guardians
-		$this->twilioMessage($str,$phone);
+		$this->twilioMessage($str,$to);
 		$this->alertGuardians($str,$pets);
 	}
 	public function createMessage($entry) {
@@ -87,16 +85,38 @@ class Pet_Guardian_First_Responder_Public {
 	}
 
 	public function getUserByPet($petId) {
-		//wp_user_query 
+		//$users = new WP_User_Query( array( 'meta_key' => 'pet_1_id', 'meta_value' => $petId ) );
+		$users = new WP_User_Query( array( 'meta_key' => 'pet_1_id', 'meta_value' => '1867793849' ) );
+		return $users[0];
 	}
-	public function getPetData($petId) {
-		//
+	public function getPetData($petNum) {
+		$pet = new Pet($petNum);
+		for($i=1;$i<6;$i++) {
+			$suffixStr = "p{$petNum}_guardian_{$i}_";
+			$hash = array();
+			$hash['prefix'] = "{$suffixStr}prefix";
+			$hash['first_name'] = "{$suffixStr}first_name";
+			$hash['last_name'] = "{$suffixStr}last_name";
+			$hash['email'] = "{$suffixStr}email";
+			$hash['mobile_phone'] = "{$suffixStr}mobile_phone";
+			$hash['response'] = "{$suffixStr}response";
+			$pet->setGuardian($i,$data);
+		}
+		return $pet;
 	}
 	public function alertGuardians($str,$pets) {
-
+		foreach($pets as $p) {
+			foreach($p->guardian as $g) {
+				if($g->response==='1') {
+					//$this->twilioMessage($str,$g->mobile_phone);
+				}
+			}
+		}
 	}
-	public function scrubPhone($data) {
-		return $data;
+	public function scrubPhone($number) {
+		//strip all non-numeric characters out, and prepend a 1
+		$number = preg_replace("/[^0-9]/", "", $number);
+		return '+1'.$number;
 	}
 
 	/**
@@ -145,4 +165,24 @@ class Pet_Guardian_First_Responder_Public {
 
 	}
 
+}
+class Pet {
+	public function __construct( $which ) {
+		$this->which = $which;
+		$this->guardians = array();
+	}
+	public function setGuardian($which,$data) {
+		$this->guardians[$which] = new Guardian($data);
+	}
+}
+class Guardian {
+	public $prefix, $first_name, $last_name, $email, $mobile_phone, $response;
+	public function __construct( $data ) {
+		$this->prefix = $data['prefix'];
+		$this->first_name = $data['first_name'];
+		$this->last_name = $data['last_name'];
+		$this->email = $data['email'];
+		$this->mobile_phone = $data['mobile_phone'];
+		$this->response = $data['response'];
+	}
 }
