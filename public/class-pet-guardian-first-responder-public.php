@@ -87,7 +87,7 @@ class Pet_Guardian_First_Responder_Public {
 	public function getUserByPet($petId) {
 		//$users = new WP_User_Query( array( 'meta_key' => 'pet_1_id', 'meta_value' => $petId ) );
 		$users = new WP_User_Query( array( 'meta_key' => 'pet_1_id', 'meta_value' => '1867793849' ) );
-		return $users[0];
+		return $user;
 	}
 	public function getPetData($petNum) {
 		$pet = new Pet($petNum);
