@@ -59,6 +59,8 @@ class Pet_Guardian_First_Responder_Public {
 		$testStr = $user->ID;
 		$data = get_user_meta($user->ID);
 		print_r($data);
+		print_r(get_user_meta($85));
+		print_r(user);
 		$pets = array();
 		for($i=1;$i<6;$i++) {
 			$str = "$i";
