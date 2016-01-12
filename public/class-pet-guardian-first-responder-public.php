@@ -106,7 +106,7 @@ class Pet_Guardian_First_Responder_Public {
 	}
 	public function alertGuardians($str,$pets) {
 		foreach($pets as $p) {
-			foreach($p->guardian as $g) {
+			foreach($p->guardians as $g) {
 				if($g->response==='1') {
 					//$this->twilioMessage($str,$g->mobile_phone);
 				}
