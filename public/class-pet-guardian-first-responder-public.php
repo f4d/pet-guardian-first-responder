@@ -84,7 +84,7 @@ class Pet_Guardian_First_Responder_Public {
 		$sid = $message->sid;		
 	}
 
-	public function getUserByPet($petId) {
+	public function getUserByMetaId($petId) {
 		//$users = new WP_User_Query( array( 'meta_key' => 'pet_1_id', 'meta_value' => $petId ) );
 		$user = new WP_User_Query( array( 'meta_key' => 'pet_owner_id', 'meta_value' => $petId ) );
 		return $user;
@@ -101,9 +101,9 @@ class Pet_Guardian_First_Responder_Public {
 			$hash = array();
 			foreach($arr as $a) {
 				$str = $prefix.$a;
-				print_r($str).":";
-				print_r($data[$str][0]);
-				echo "<br>";
+				//print_r($str).":";
+				//print_r($data[$str][0]);
+				//echo "<br>";
 				$hash[$a] = $data[$str][0];
 			}
 
@@ -115,10 +115,15 @@ class Pet_Guardian_First_Responder_Public {
 		echo "<br>";
 		foreach($pets as $p) {
 			foreach($p->guardians as $g) {
-				print_r($g);
-				echo "<br>";
+				//print_r($g);
+				//echo "<br>";
 				if($g->response==='1') {
-					$this->twilioMessage($str,$g->mobile_phone);
+					//echo $this->scrubPhone($g->mobile_phone);
+					try {
+					    $this->twilioMessage($str,$g->mobile_phone);
+					} catch (Exception $e) {
+					    echo 'Caught exception: ',  $e->getMessage(), "\n";
+					}
 				}
 			}
 		}
