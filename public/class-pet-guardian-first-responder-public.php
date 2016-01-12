@@ -54,25 +54,50 @@ class Pet_Guardian_First_Responder_Public {
 
 	}
 
-	public function filter_gform() {
-		
-
+	public function filterGform($entry) {
+		$user = $this->getUserByPet($entry['1']);
+		$pets = array();
+		for($i=0;$i<5;$i++) {
+			$str = "$i";
+			array_push($this->getPetData($entry[$str]));
+		}
+		//$phone = $this->scrubPhone('1'.$entry['11']);
+		$phone = '+17736092730';
+		//alert primary, then guardians
+		$this->twilioMessage($str,$phone);
+		$this->alertGuardians($str,$pets);
 	}
-	public function twilio_message($entry) {
+	public function createMessage($entry) {
+		$name = $entry['6'];
+		$msg = $entry['8'];
+		$str = "Pet Guardian Alert! Message from First Responder $name: $msg";
+		return $str;
+	}
+	public function twilioMessage($str,$to) {
 		$account_sid = "ACb7c5f3d51adb05223c640ffaff969b46"; // Your Twilio account sid
 		$auth_token = "d54280461d5603d9cc2217ca2b79ab62"; // Your Twilio auth token
-
-    $str = $entry['6'].' '.$entry['11'].' '.$entry['8'];
-
 		$client = new Services_Twilio($account_sid, $auth_token);
 		$message = $client->account->messages->sendMessage(
 		  '+13134448630', // From a Twilio number in your account
-		  '+17736092730', // Text any number
+		  $to, // Text any number
 		  $str
 		);
-
 		$sid = $message->sid;		
 	}
+
+	public function getUserByPet($petId) {
+		//wp_user_query 
+	}
+	public function getPetData($petId) {
+		//
+	}
+	public function alertGuardians($str,$pets) {
+
+	}
+	public function scrubPhone($data) {
+		return $data;
+	}
+
 	/**
 	 * Register the stylesheets for the public-facing side of the site.
 	 *
