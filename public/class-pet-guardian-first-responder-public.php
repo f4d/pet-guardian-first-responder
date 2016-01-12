@@ -53,7 +53,7 @@ class Pet_Guardian_First_Responder_Public {
 	}
 
 	public function filterGform($entry) {
-		$query = $this->getUserByPet($entry['1']);
+		$query = $this->getUserByMetaId($entry['11']);
 		//$user = $query->results[0]->data->ID;
 		$user = $query->results[0];
 		$data = get_metadata(user, $user->ID);
@@ -63,15 +63,12 @@ class Pet_Guardian_First_Responder_Public {
 			$pets[$i] = $this->getPet($user->ID,$i,$data);
 		}
 		$str = $this->createMessage($entry);
-		$to = $this->scrubPhone('1'.$entry['11']);
-		print_r($to);
 		//alert primary, then guardians
-		$this->twilioMessage($str,$to);
 		$this->alertGuardians($str,$pets);
 	}
 	public function createMessage($entry) {
 		$name = $entry['6'];
-		$msg = $entry['8'];
+		$msg = $entry['10'].''.$entry['8'];
 		$str = "Pet Guardian Alert! Message from First Responder $name: $msg";
 		return $str;
 	}
@@ -81,7 +78,7 @@ class Pet_Guardian_First_Responder_Public {
 		$client = new Services_Twilio($account_sid, $auth_token);
 		$message = $client->account->messages->sendMessage(
 		  '+13134448630', // From a Twilio number in your account
-		  $to, // Text any number
+		  $this->scrubPhone($to), // Text any number
 		  $str
 		);
 		$sid = $message->sid;		
@@ -89,7 +86,7 @@ class Pet_Guardian_First_Responder_Public {
 
 	public function getUserByPet($petId) {
 		//$users = new WP_User_Query( array( 'meta_key' => 'pet_1_id', 'meta_value' => $petId ) );
-		$user = new WP_User_Query( array( 'meta_key' => 'pet_1_id', 'meta_value' => $petId ) );
+		$user = new WP_User_Query( array( 'meta_key' => 'pet_owner_id', 'meta_value' => $petId ) );
 		return $user;
 	}
 	public function getPet($userId,$petNum,$data) {
