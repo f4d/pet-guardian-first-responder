@@ -62,7 +62,7 @@ class Pet_Guardian_First_Responder_Public {
 		$account_sid = "ACb7c5f3d51adb05223c640ffaff969b46"; // Your Twilio account sid
 		$auth_token = "d54280461d5603d9cc2217ca2b79ab62"; // Your Twilio auth token
 
-    $str = $entry['1'].' '.$entry['4'];
+    $str = $entry['6'].' '.$entry['11'].' '.$entry['8'];
 
 		$client = new Services_Twilio($account_sid, $auth_token);
 		$message = $client->account->messages->sendMessage(
