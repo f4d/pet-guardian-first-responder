@@ -10,7 +10,7 @@ require('vendor/twilio/sdk/Services/Twilio.php');
  * that starts the plugin.
  *
  * @link              http://example.com
- * @since             0.9
+ * @since             0.95 Beta
  * @package           Pet_Guardian_First_Responder
  *
  * @wordpress-plugin

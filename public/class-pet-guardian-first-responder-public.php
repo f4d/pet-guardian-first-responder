@@ -56,17 +56,16 @@ class Pet_Guardian_First_Responder_Public {
 		$query = $this->getUserByPet($entry['1']);
 		//$user = $query->results[0]->data->ID;
 		$user = $query->results[0];
-		$testStr = $user->ID;
-		$data = get_user_meta($user->ID);
+		$data = get_metadata(user, $user->ID);
+		//$data = get_user_meta($user->ID);
 		$pets = array();
 		for($i=1;$i<6;$i++) {
-			$str = "$i";
-			$pets[$str] = $this->getPetData($entry[$str],$data);
+			$pets[$i] = $this->getPet($user->ID,$i,$data);
 		}
 		$str = $this->createMessage($entry);
 		$to = $this->scrubPhone('1'.$entry['11']);
 		//alert primary, then guardians
-		$this->twilioMessage($str." ... $testStr",$to);
+		$this->twilioMessage($str,$to);
 		$this->alertGuardians($str,$pets);
 	}
 	public function createMessage($entry) {
@@ -89,28 +88,37 @@ class Pet_Guardian_First_Responder_Public {
 
 	public function getUserByPet($petId) {
 		//$users = new WP_User_Query( array( 'meta_key' => 'pet_1_id', 'meta_value' => $petId ) );
-		$user = new WP_User_Query( array( 'meta_key' => 'pet_1_id', 'meta_value' => '1867793849' ) );
+		$user = new WP_User_Query( array( 'meta_key' => 'pet_1_id', 'meta_value' => $petId ) );
 		return $user;
 	}
-	public function getPetData($petNum,$data) {
+	public function getPet($userId,$petNum,$data) {
 		$pet = new Pet($petNum);
+		//print_r($data);
+		echo "<br><br>";
+
+
 		for($i=1;$i<6;$i++) {
-			$suffixStr = "p{$petNum}_guardian_{$i}_";
+			$prefix = "p{$petNum}_guardian_{$i}_";
+			$arr = array('prefix','first_name','last_name','email','mobile_phone','response');
 			$hash = array();
-			$hash['prefix'] = $data["{$suffixStr}prefix"];
-			$hash['first_name'] = $data["{$suffixStr}first_name"];
-			$hash['last_name'] = $data["{$suffixStr}last_name"];
-			$hash['email'] = $data["{$suffixStr}email"];
-			$hash['mobile_phone'] = $data["{$suffixStr}mobile_phone"];
-			$hash['response'] = $data["{$suffixStr}response"];
-			$pet->setGuardian($i,$data);
+			foreach($arr as $a) {
+				$str = $prefix.$a;
+				print_r($str).":";
+				print_r($data[$str][0]);
+				echo "<br>";
+				$hash[$a] = $data[$str][0];
+			}
+
+			$pet->setGuardian($i,$hash);
 		}
 		return $pet;
 	}
 	public function alertGuardians($str,$pets) {
-		//print_r($pets);
+		echo "<br>";
 		foreach($pets as $p) {
 			foreach($p->guardians as $g) {
+				print_r($g);
+				echo "<br>";
 				if($g->response==='1') {
 					$this->twilioMessage($str,$g->mobile_phone);
 				}
