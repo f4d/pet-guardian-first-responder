@@ -57,13 +57,15 @@ class Pet_Guardian_First_Responder_Public {
 		$pets = array();
 		for($i=1;$i<6;$i++) {
 			$str = "$i";
-			$pets[$str] = $this->getPetData($entry[$str]);
+			$pets[$str] = $this->getPetData($entry[$str],$user);
 		}
 		$str = $this->createMessage($entry);
 		$to = $this->scrubPhone('1'.$entry['11']);
 		//alert primary, then guardians
 		$this->twilioMessage($str,$to);
-		print_r($user->query_vars[0]);
+		print_r($user->query_vars);
+		echo "<br>*********<br>";
+		print_r($user);
 
 		//$this->alertGuardians($str,$pets);
 	}
@@ -90,7 +92,7 @@ class Pet_Guardian_First_Responder_Public {
 		$user = new WP_User_Query( array( 'meta_key' => 'pet_1_id', 'meta_value' => '1867793849' ) );
 		return $user;
 	}
-	public function getPetData($petNum) {
+	public function getPetData($petNum,$user) {
 		$pet = new Pet($petNum);
 		for($i=1;$i<6;$i++) {
 			$suffixStr = "p{$petNum}_guardian_{$i}_";
