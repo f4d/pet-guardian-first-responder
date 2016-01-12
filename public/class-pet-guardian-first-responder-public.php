@@ -53,19 +53,22 @@ class Pet_Guardian_First_Responder_Public {
 	}
 
 	public function filterGform($entry) {
-		$user = $this->getUserByPet($entry['1']);
+		$query = $this->getUserByPet($entry['1']);
+		//$user = $query->results[0]->data->ID;
+		$user = $query->results[0];
+		$testStr = $user->ID;
+		$data = get_user_meta($user->ID);
+		print_r($data);
 		$pets = array();
 		for($i=1;$i<6;$i++) {
 			$str = "$i";
-			$pets[$str] = $this->getPetData($entry[$str],$user);
+			$pets[$str] = $this->getPetData($entry[$str],$data);
 		}
 		$str = $this->createMessage($entry);
 		$to = $this->scrubPhone('1'.$entry['11']);
 		//alert primary, then guardians
-		$this->twilioMessage($str,$to);
-		print_r($user->query_vars);
-		echo "<br>*********<br>";
-		print_r($user);
+		$this->twilioMessage($str." ... $testStr",$to);
+
 
 		//$this->alertGuardians($str,$pets);
 	}
