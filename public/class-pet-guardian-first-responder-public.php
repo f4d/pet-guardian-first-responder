@@ -54,16 +54,18 @@ class Pet_Guardian_First_Responder_Public {
 
 	public function filterGform($entry) {
 		$query = $this->getUserByMetaId($entry['11']);
-		//$user = $query->results[0]->data->ID;
+		
 		$user = $query->results[0];
 		$data = get_metadata(user, $user->ID);
-		//$data = get_user_meta($user->ID);
+		$primary = $data['mobile_phone'][0];
 		$pets = array();
 		for($i=1;$i<6;$i++) {
 			$pets[$i] = $this->getPet($user->ID,$i,$data);
 		}
 		$str = $this->createMessage($entry);
+
 		//alert primary, then guardians
+		$this->alertPrimary($str,$primary);
 		$this->alertGuardians($str,$pets);
 	}
 	public function createMessage($entry) {
@@ -85,25 +87,17 @@ class Pet_Guardian_First_Responder_Public {
 	}
 
 	public function getUserByMetaId($petId) {
-		//$users = new WP_User_Query( array( 'meta_key' => 'pet_1_id', 'meta_value' => $petId ) );
 		$user = new WP_User_Query( array( 'meta_key' => 'pet_owner_id', 'meta_value' => $petId ) );
 		return $user;
 	}
 	public function getPet($userId,$petNum,$data) {
 		$pet = new Pet($petNum);
-		//print_r($data);
-		echo "<br><br>";
-
-
 		for($i=1;$i<6;$i++) {
 			$prefix = "p{$petNum}_guardian_{$i}_";
 			$arr = array('prefix','first_name','last_name','email','mobile_phone','response');
 			$hash = array();
 			foreach($arr as $a) {
 				$str = $prefix.$a;
-				//print_r($str).":";
-				//print_r($data[$str][0]);
-				//echo "<br>";
 				$hash[$a] = $data[$str][0];
 			}
 
@@ -111,12 +105,16 @@ class Pet_Guardian_First_Responder_Public {
 		}
 		return $pet;
 	}
+	public function alertPrimary($str,$number) {
+		try {
+		    $this->twilioMessage($str,$number);
+		} catch (Exception $e) {
+		    //echo 'Caught exception: ',  $e->getMessage(), "\n";
+		}
+	}
 	public function alertGuardians($str,$pets) {
-		echo "<br>";
 		foreach($pets as $p) {
 			foreach($p->guardians as $g) {
-				//print_r($g);
-				//echo "<br>";
 				if($g->response==='1') {
 					//echo $this->scrubPhone($g->mobile_phone);
 					try {
