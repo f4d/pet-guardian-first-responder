@@ -167,9 +167,10 @@ class Pet_Guardian_First_Responder {
 
 		$plugin_public = new Pet_Guardian_First_Responder_Public( $this->get_plugin_name(), $this->get_version() );
 		$formId = '62';
-		$actionStr = "gform_after_submission_{$formId}";
-		$this->loader->add_action( $actionStr, $plugin_public, 'filterGform' );
-
+		$actionStr = "gform_pre_submission_filter_{$formId}";
+		//$actionStr = "gform_after_submission_{$formId}";
+		//$this->loader->add_action( $actionStr, $plugin_public, 'filterGform' );
+		$this->loader->add_filter( $actionStr, $plugin_public, 'filterGform' );
 
 		//$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		//$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );

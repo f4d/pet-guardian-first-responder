@@ -53,20 +53,24 @@ class Pet_Guardian_First_Responder_Public {
 	}
 
 	public function filterGform($entry) {
-		$query = $this->getUserByMetaId($entry['11']);
-		
-		$user = $query->results[0];
+		$user = $this->findUser($entry);
+		print_r($user);
+		if($user===false) {
+			//if user not valid
+			$this->createConfirmation(false,"Invalid user ID provided.");
+			return 0;
+		}
+
 		$data = get_metadata(user, $user->ID);
 		$primary = $data['mobile_phone'][0];
 		$pets = array();
-		for($i=1;$i<6;$i++) {
+		$numPets = $this->numOfPets($data);
+		for($i=1;$i<($numPets+1);$i++) {
 			$pets[$i] = $this->getPet($user->ID,$i,$data);
 		}
 		$str = $this->createMessage($entry);
-
-		//alert primary, then guardians
-		$this->alertPrimary($str,$primary);
-		$this->alertGuardians($str,$pets);
+		$this->sendAlerts($entry,$str,$primary,$pets);
+		
 	}
 	public function createMessage($entry) {
 		$name = $entry['6.2'].' '.$entry['6.3'].' '.$entry['6.6'];
@@ -86,6 +90,32 @@ class Pet_Guardian_First_Responder_Public {
 		$sid = $message->sid;		
 	}
 
+	public function findUser($entry) {
+		$query = $this->getUserByMetaId($entry['11']);
+		$user = $query->results[0];
+		return $user;
+	}
+	public function createConfirmation($entry,$successful,$message) {
+
+		return $entry;
+	}
+	public function sendAlerts($entry,$str,$primary,$pets) {
+		$msg = "";
+		$okay = true;
+		$primary = $this->alertPrimary($str,$primary);
+		if($primary == 0) {
+			$msg .= "Warning: We were unable to send a message to the primary pet owner. ";
+		}
+		$alerted = $this->alertGuardians($str,$pets);
+		if($alerted->sent > 0 ) {
+			$msg .= "You successfully sent ".$alerted->sent." messages to Pet Guardians. ";
+		}
+		if($alerted->failed > 0) {
+			$msg = "Warning: We were unable to send ".$alerted->failed." messages to Pet Guardians. ";
+		}
+		if ($primary == 0 && $alerted->sent == 0) {$okay = false;}
+		$entry = $this->createConfirmation($entry,$okay,$msg);
+	}
 	public function getUserByMetaId($petId) {
 		$user = new WP_User_Query( array( 'meta_key' => 'pet_owner_id', 'meta_value' => $petId ) );
 		return $user;
@@ -110,26 +140,45 @@ class Pet_Guardian_First_Responder_Public {
 		    $this->twilioMessage($str,$number);
 		} catch (Exception $e) {
 		    //echo 'Caught exception: ',  $e->getMessage(), "\n";
+			return 0;
 		}
+		return 1;
 	}
 	public function alertGuardians($str,$pets) {
+		$alerts = new StdClass;
+		$alerts->sent = 0;
+		$alerts->total = 0;
 		foreach($pets as $p) {
 			foreach($p->guardians as $g) {
-				if($g->response==='1') {
-					//echo $this->scrubPhone($g->mobile_phone);
+				if($g->response==='1' && $this->validNumber($g->mobile_phone)) {
+					$alerts->sent++;
+					$alerts->total++;
 					try {
 					    $this->twilioMessage($str,$g->mobile_phone);
 					} catch (Exception $e) {
-					    //echo 'Caught exception: ',  $e->getMessage(), "\n";
+						$alerts->sent--;
+						//echo 'Caught exception: ',  $e->getMessage(), "\n";
 					}
 				}
 			}
 		}
+		$alerts->failed = $alerts->total - $alerts->sent;
+		return $alerts;
+	}
+	public function validNumber($number) {
+		$test = (string) preg_replace("/[^0-9]/", "", $number);
+		if ( $test == '5555555555' || strlen($test) != 10 ) {
+			return false;
+		}
+		return true;
 	}
 	public function scrubPhone($number) {
-		//strip all non-numeric characters out, and prepend a 1
+		//strip all non-numeric characters out, and prepend a +1
 		$number = preg_replace("/[^0-9]/", "", $number);
 		return '+1'.$number;
+	}
+	private function numOfPets($data) {
+		return 5;
 	}
 
 	/**
