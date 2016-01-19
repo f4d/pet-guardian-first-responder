@@ -52,16 +52,18 @@ class Pet_Guardian_First_Responder_Public {
 		$this->version = $version;
 	}
 	public function filterConfirmation($confirmation,$form,$entry) {
-		return $confirmation .' '. $entry['14'];
+		$confirmation = $entry['14'];
+		return $confirmation;
 	}
 	public function filterGform($form) {
-		$user = $this->findUser();
+		$pet_owner_id = $_POST['input_11'];
+		$user = $this->findUser($pet_owner_id);
 		//if user not valid
 		if($user===false) {
-			$this->createConfirmation('false',"<p>Invalid user ID provided. This angers me!</p>");
+			$this->createConfirmation('false',"<p><b>Error: Invalid user ID provided, messages not sent!</b></p>");
 			return 0;
 		} else {
-			$data = get_metadata(user, $user->ID);
+			$data = get_metadata('user', $user->ID);
 			$primary = $data['mobile_phone'][0];
 			$pets = array();
 			$numPets = $this->numOfPets($data);
@@ -91,9 +93,9 @@ class Pet_Guardian_First_Responder_Public {
 		$sid = $message->sid;		
 	}
 
-	public function findUser() {
-		$query = $this->getUserByMetaId($_POST['entry_11']);
+	public function findUser($pet_owner_id) {
 		$user = false;
+		$query = new WP_User_Query( array( 'meta_key' => 'pet_owner_id', 'meta_value' => $pet_owner_id ) );
 		if (count($query->results) == 1) {
 			$user = $query->results[0];
 		}
@@ -120,10 +122,7 @@ class Pet_Guardian_First_Responder_Public {
 		if ($primary == 0 && $alerted->sent == 0) {$okay = 'false';}
 		$this->createConfirmation($okay,$msg);
 	}
-	public function getUserByMetaId($ownerId) {
-		$user = new WP_User_Query( array( 'meta_key' => 'pet_owner_id', 'meta_value' => $ownerId ) );
-		return $user;
-	}
+
 	public function getPet($userId,$petNum,$data) {
 		$pet = new Pet($petNum);
 		for($i=1;$i<6;$i++) {
@@ -182,7 +181,7 @@ class Pet_Guardian_First_Responder_Public {
 		return '+1'.$number;
 	}
 	private function numOfPets($data) {
-		return 5;
+		return $data['how_many_pets_owned'][0];
 	}
 
 	/**
