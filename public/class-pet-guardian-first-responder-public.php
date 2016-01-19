@@ -51,30 +51,31 @@ class Pet_Guardian_First_Responder_Public {
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
 	}
-
-	public function filterGform($entry) {
-		$user = $this->findUser($entry);
-		print_r($user);
+	public function filterConfirmation($confirmation,$form,$entry) {
+		return $confirmation .' '. $entry['14'];
+	}
+	public function filterGform($form) {
+		$user = $this->findUser();
+		//if user not valid
 		if($user===false) {
-			//if user not valid
-			$this->createConfirmation(false,"Invalid user ID provided.");
+			$this->createConfirmation('false',"<p>Invalid user ID provided. This angers me!</p>");
 			return 0;
+		} else {
+			$data = get_metadata(user, $user->ID);
+			$primary = $data['mobile_phone'][0];
+			$pets = array();
+			$numPets = $this->numOfPets($data);
+			for($i=1;$i<($numPets+1);$i++) {
+				$pets[$i] = $this->getPet($user->ID,$i,$data);
+			}
+			$str = $this->createMessage();
+			$this->sendAlerts($str,$primary,$pets);
 		}
-
-		$data = get_metadata(user, $user->ID);
-		$primary = $data['mobile_phone'][0];
-		$pets = array();
-		$numPets = $this->numOfPets($data);
-		for($i=1;$i<($numPets+1);$i++) {
-			$pets[$i] = $this->getPet($user->ID,$i,$data);
-		}
-		$str = $this->createMessage($entry);
-		$this->sendAlerts($entry,$str,$primary,$pets);
 		
 	}
-	public function createMessage($entry) {
-		$name = $entry['6.2'].' '.$entry['6.3'].' '.$entry['6.6'];
-		$msg = $entry['10'].'. '.$entry['8'];
+	public function createMessage() {
+		$name = $_POST['input_6_2'].' '.$_POST['input_6_3'].' '.$_POST['input_6_6'];
+		$msg = $_POST['input_10'].'. '.$_POST['input_8'];
 		$str = "Pet Guardian Alert! Message from First Responder $name, Phone:$msg";
 		return $str;
 	}
@@ -90,18 +91,21 @@ class Pet_Guardian_First_Responder_Public {
 		$sid = $message->sid;		
 	}
 
-	public function findUser($entry) {
-		$query = $this->getUserByMetaId($entry['11']);
-		$user = $query->results[0];
+	public function findUser() {
+		$query = $this->getUserByMetaId($_POST['entry_11']);
+		$user = false;
+		if (count($query->results) == 1) {
+			$user = $query->results[0];
+		}
 		return $user;
 	}
-	public function createConfirmation($entry,$successful,$message) {
-
-		return $entry;
+	public function createConfirmation($successful,$message) {
+		$_POST['input_13'] = $successful;
+		$_POST['input_14'] = $message;
 	}
-	public function sendAlerts($entry,$str,$primary,$pets) {
-		$msg = "";
-		$okay = true;
+	public function sendAlerts($str,$primary,$pets) {
+		$msg = '';
+		$okay = 'true';
 		$primary = $this->alertPrimary($str,$primary);
 		if($primary == 0) {
 			$msg .= "Warning: We were unable to send a message to the primary pet owner. ";
@@ -113,11 +117,11 @@ class Pet_Guardian_First_Responder_Public {
 		if($alerted->failed > 0) {
 			$msg = "Warning: We were unable to send ".$alerted->failed." messages to Pet Guardians. ";
 		}
-		if ($primary == 0 && $alerted->sent == 0) {$okay = false;}
-		$entry = $this->createConfirmation($entry,$okay,$msg);
+		if ($primary == 0 && $alerted->sent == 0) {$okay = 'false';}
+		$this->createConfirmation($okay,$msg);
 	}
-	public function getUserByMetaId($petId) {
-		$user = new WP_User_Query( array( 'meta_key' => 'pet_owner_id', 'meta_value' => $petId ) );
+	public function getUserByMetaId($ownerId) {
+		$user = new WP_User_Query( array( 'meta_key' => 'pet_owner_id', 'meta_value' => $ownerId ) );
 		return $user;
 	}
 	public function getPet($userId,$petNum,$data) {
