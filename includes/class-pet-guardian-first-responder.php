@@ -166,11 +166,15 @@ class Pet_Guardian_First_Responder {
 	private function define_public_hooks() {
 
 		$plugin_public = new Pet_Guardian_First_Responder_Public( $this->get_plugin_name(), $this->get_version() );
-		$formId = '62';
-		$actionStr = "gform_pre_submission_{$formId}";
-		$filterStr = "gform_confirmation_{$formId}";
+		$phoneFormId = '68';
+		$firstRespFormId = '62';
 
-		$this->loader->add_action( $actionStr, $plugin_public, 'filterGform' );
+		$phoneStr = "gform_pre_submission_{$phoneFormId}";
+		$firstRespString = "gform_pre_submission_{$firstRespFormId}";
+		$filterStr = "gform_confirmation_{$firstRespFormId}";
+
+		$this->loader->add_action( $phoneStr, $plugin_public, 'testPhoneNumber' );
+		$this->loader->add_action( $firstRespString, $plugin_public, 'filterGform' );
 		$this->loader->add_filter( $filterStr, $plugin_public, 'filterConfirmation', 10, 3 );
 
 		//$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
