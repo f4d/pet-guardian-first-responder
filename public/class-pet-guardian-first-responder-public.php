@@ -1,6 +1,6 @@
 <?php
 class UserHelper {
-	public const PRIMARY_NUM_KEY = "user_mobile_phone";
+	const PRIMARY_NUM_KEY = "user_mobile_phone";
 	static public function guardianMobileKey($petNum,$guardianNum) {
 		return "p{$petNum}_guardian_{$guardianNum}_mobile_phone";
 	}
@@ -30,8 +30,8 @@ class UserHelper {
 	}
 }
 class TwilioHelper {
-	public const SUCCESS_FIELD = 'input_13';
-	public const MESSAGE_FIELD = 'input_14';
+	const SUCCESS_FIELD = 'input_13';
+	const MESSAGE_FIELD = 'input_14';
 	static public function createConfirmation($successful,$message) {
 		$_POST[SUCCESS_FIELD] = $successful;
 		$_POST[MESSAGE_FIELD] = $message;
@@ -65,12 +65,12 @@ class TwilioHelper {
 	}
 }
 class Pet {
-	public const PET_OWNER_FIELD = '204';
-	public const PF1_ID = '6';
-	public const PF2_ID = '57';
-	public const PF3_ID = '58';
-	public const PF4_ID = '59';
-	public const PF5_ID = '60';
+	const PET_OWNER_FIELD = '204';
+	const PF1_ID = '6';
+	const PF2_ID = '57';
+	const PF3_ID = '58';
+	const PF4_ID = '59';
+	const PF5_ID = '60';
 	public $petOwnerId, $petfile;
 	public function __construct( $petfile, $petOwnerId, $data ) {
 		$this->petOwnerId = $petOwnerId;
@@ -245,7 +245,7 @@ class PhoneNumber {
 
 	}
 }
-public class Test {
+class Test {
 	static public function phoneNumber() 	{
 		$a = PhoneNumber::gfFindNumber('7736411561');
 		$b = PhoneNumber::gfFind('7736092730','1');
