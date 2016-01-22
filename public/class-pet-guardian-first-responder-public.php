@@ -14,13 +14,14 @@ class UserHelper {
 	}
 	static public function updateNumbers($userId,$meta,$oldNum,$newNum) {
 		//check primary number
-		if($meta[UserHelper::PRIMARY_NUM_KEY] == $oldNum) {
+		$primary = PhoneNumber::cleanup($meta[UserHelper::PRIMARY_NUM_KEY]);
+		if($primary == $oldNum) {
 			UserHelper::updatePrimaryNumber($userId,$newNum);
-		} 
+		}
 		for($i=1;$i<($numPets+1);$i++) {
 			for($j=1;$j<6;$j++) {
 				$field = UserHelper::guardianMobileKey($i,$j);
-				$currentNum = $meta[$field];
+				$currentNum = PhoneNumber::cleanup($meta[$field]);
 				//if the number matches, update it
 				if($currentNum == $oldNum) {
 					UserHelper::updateGuardianNumber($userId,$i,$j,$newNum);
