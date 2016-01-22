@@ -1,4 +1,34 @@
 <?php
+class UserHelper {
+	public const PRIMARY_NUM_KEY = "user_mobile_phone";
+	static public function guardianMobileKey($petNum,$guardianNum) {
+		return "p{$petNum}_guardian_{$guardianNum}_mobile_phone";
+	}
+	static public function updateGuardianNumber($userId,$petNum,$guardianNum,$newNum) {
+		$key = UserHelper::guardianMobileKey($petNum,$guardianNum);
+		update_user_meta( $userId, $key, $newNum );
+	}
+	static public function updatePrimaryNumber($userId,$newNum) {
+		$key = UserHelper::PRIMARY_NUM_KEY;
+		update_user_meta( $userId, $key, $newNum );
+	}
+	static public function updateNumbers($userId,$meta,$oldNum,$newNum) {
+		//check primary number
+		if($meta[UserHelper::PRIMARY_NUM_KEY] == $oldNum) {
+			UserHelper::updatePrimaryNumber($userId,$newNum);
+		} 
+		for($i=1;$i<($numPets+1);$i++) {
+			for($j=1;$j<6;$j++) {
+				$field = UserHelper::guardianMobileKey($i,$j);
+				$currentNum = $meta[$field];
+				//if the number matches, update it
+				if($currentNum == $oldNum) {
+					UserHelper::updateGuardianNumber($userId,$i,$j,$newNum);
+				}
+			}
+		}		
+	}
+}
 class TwilioHelper {
 	public const SUCCESS_FIELD = 'input_13';
 	public const MESSAGE_FIELD = 'input_14';
@@ -179,18 +209,23 @@ class PhoneNumber {
 		$entries = GFAPI::get_entries( PhoneNumber::FORM_ID, $search_criteria );
 		return $entries;
 	}
-	public static function gfFindNumber($number) {
+	public static function gfFindNumber($number,$last=false) {
 		$search_criteria = array();
 		$search_criteria['field_filters'][] = array( 'key' => PhoneNumber::PHONE_FIELD, 'value' => $number );
 		$entries = GFAPI::get_entries( PhoneNumber::FORM_ID, $search_criteria );
-		return $entries;
+		if($last) {return $entries[0];}
+		else {return $entries;}
 	}
 	public static function updateNumberHealth($number,$callStatus) {
 		if ($callStatus == 'sent' || $callStatus == 'failed' || $callStatus == 'undelivered' || $callStatus == 'delivered') {
-			$phoneNumber = new PhoneNumber($number);
+			$p = PhoneNumber::gfFindNumber($this->number);
+			$phoneNumber = new PhoneNumber($number,$p[PhoneNumber::HEALTH_FIELD],$p[PhoneNumber::USER_ID_FIELD]);
 			$phoneNumber->setHealth($callStatus);
 			$phoneNumber->update();
-			//print_r(PhoneNumber::gfFindNumber($number));
+			if($phoneNumber->status=="bad") {
+				//fix bad numbers in system
+				UserHelper::updateGuardianNumber($phoneNumber->userId,$petNum,$guardianNum);
+			}
 			return 'Updated';
 		} else {
 			return "No change";
@@ -205,6 +240,9 @@ class PhoneNumber {
 		} else {
 			return "Invalid query";
 		}
+	}
+	static public function markInvalid($userId,$data) {
+
 	}
 }
 public class Test {
@@ -326,7 +364,7 @@ class Pet_Guardian_First_Responder_Public {
 	}
 	public function sendAlerts($str,$primary,$pets,$userId) {
 		$okay = 'true';
-		$primary = $this->alertPrimary($str,$primary);
+		$primary = $this->alertPrimary($str,$primary,$userId);
 		if($primary == 0) {
 			$msg = "Warning: We were unable to send a message to the primary pet owner. ";
 		} else {
@@ -342,13 +380,13 @@ class Pet_Guardian_First_Responder_Public {
 		if ($primary == 0 && $alerted->sent == 0) {$okay = 'false';}
 		TwilioHelper::createConfirmation($okay,$msg);
 	}
-
-
-	public function alertPrimary($str,$number) {
+	public function alertPrimary($str,$number,$userId) {
 		try {
 		   TwilioHelper::sendMsg($str,$number);
 		} catch (Exception $e) {
-		  echo 'Caught exception: ',  $e->getMessage(), "\n";
+			PhoneNumber::updateNumberHealth($phoneNumber->number,'failed'); 
+			UserHelper::updatePrimaryNumber($userId,"_____");
+			mail ( 'ianlowell@gmail.com' , 'Bad Number: Pet Guardian' , $e->getMessage() );
 			return 0;
 		}
 		return 1;
@@ -358,6 +396,7 @@ class Pet_Guardian_First_Responder_Public {
 		$alerts->sent = 0;
 		$alerts->total = 0;
 		foreach($pets as $p) {
+			$gNum = 1;
 			foreach($p->guardians as $g) {
 				//check the number, if it's new, save to the db
 				$phoneNumber = PhoneNumber::lookup($g->mobile_phone,$userId);
@@ -368,12 +407,15 @@ class Pet_Guardian_First_Responder_Public {
 					  TwilioHelper::sendMsg($str,$phoneNumber->number);
 					} catch (Exception $e) {
 						$alerts->sent--;
-						echo 'Caught exception: ',  $e->getMessage(), "\n";
-						mail ( 'cyborgk@gmail.com' , 'Bad Number: Pet Guardian' , $e->getMessage() );
+						//mark number as bad, update user meta, send emails
+						PhoneNumber::updateNumberHealth($phoneNumber->number,'failed'); 
+						UserHelper::updateGuardianNumber($userId,$p->petfile,$gNum,$newNum);
+						mail ( 'ianlowell@gmail.com' , 'Bad Number: Pet Guardian' , $e->getMessage() );
 					}
 				} else {
-					//
+					//don't send to an invalid number
 				}
+				$gNum++;
 			}
 		}
 		$alerts->failed = $alerts->total - $alerts->sent;

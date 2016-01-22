@@ -17,7 +17,7 @@ require('vendor/twilio/sdk/Services/Twilio.php');
  * Plugin Name:       Pet Guardian First Responder
  * Plugin URI:        http://example.com/plugin-name-uri/
  * Description:       This is a short description of what the plugin does. It's displayed in the WordPress admin area.
- * Version:           2.01
+ * Version:           2.02
  * Author:            David A. Powers / rezon8.net
  * Author URI:        http://rezon8.net/
  * License:           GPL-2.0+
