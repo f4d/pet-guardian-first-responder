@@ -153,7 +153,6 @@ class Pet_Guardian_First_Responder {
 
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
-
 	}
 
 	/**
@@ -173,10 +172,20 @@ class Pet_Guardian_First_Responder {
 		$firstRespString = "gform_pre_submission_{$firstRespFormId}";
 		$filterStr = "gform_confirmation_{$firstRespFormId}";
 
+
 		$this->loader->add_action( $phoneStr, $plugin_public, 'testPhoneNumber' );
 		$this->loader->add_action( $firstRespString, $plugin_public, 'filterGform' );
 		$this->loader->add_filter( $filterStr, $plugin_public, 'filterConfirmation', 10, 3 );
+		
 
+		$this->loader->add_action( $phoneStr, $plugin_public, 'testPhoneNumber' );
+
+		add_action( 'rest_api_init', function () {
+		    register_rest_route( 'petguardian/v1', '/twilio-response', array(
+		        'methods' => 'POST',
+		        'callback' => array('PhoneNumber','smsCallback')
+		    ) );
+		} );
 		//$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		//$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
 	}
@@ -221,4 +230,7 @@ class Pet_Guardian_First_Responder {
 		return $this->version;
 	}
 
+}
+function ugly() {
+	return "FUCK YOU CRIMSON DEEP FRIED FLUFFY NAPALM DEATH DUST BUNNIES!";
 }
