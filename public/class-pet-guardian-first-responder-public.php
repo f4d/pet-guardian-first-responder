@@ -1,6 +1,6 @@
 <?php
 class UserHelper {
-	const PRIMARY_NUM_KEY = "user_mobile_phone";
+	const PRIMARY_NUM_KEY = "mobile_phone";
 	static public function guardianMobileKey($petNum,$guardianNum) {
 		return "p{$petNum}_guardian_{$guardianNum}_mobile_phone";
 	}
