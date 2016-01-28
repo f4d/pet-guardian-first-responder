@@ -1,12 +1,110 @@
 <?php
+class TestPhoneNumber {
+	public function __construct() {
+		$a = PhoneNumber::gfFindNumber('7736411561');
+		$b = PhoneNumber::gfFind('7736092730','1');
+		$c = PhoneNumber::gfFind('7736411561','1');
+
+		print_r(count($a));
+		echo "<br>";
+		print_r(count($b));
+		echo "<br>";
+		print_r(count($c));		
+		echo "<br>";
+
+		$pn = PhoneNumber::lookup('7736092730','1');
+		print_r($pn);
+		//
+		$pn = PhoneNumber::lookup('0000000000','1');
+		print_r($pn);
+		print_r(PhoneNumber::gfFindNumber('0000000000'));
+		//
+		$pn = PhoneNumber::lookup('1234567890','1');
+		print_r($pn);
+		print_r(PhoneNumber::gfFindNumber('1234567890'));
+
+	}	
+}
+class TestPet {
+	public function __construct() {
+		$this->setup();
+		echo($this->testPetFileUrls());
+		exit();
+		//$this->cleanup().' ';
+	}
+	public function setup() {
+		$this->petOwnerId = '9541487788';
+		$this->user = UserHelper::findUser($this->petOwnerId);
+		$this->meta = get_metadata('user', $this->user->ID);
+		update_user_meta( $this->user->ID, 'how_many_pets_owned', '1' );
+
+	}
+	public function testPetfileUrls() {
+		$msgs = '';
+		$pets = array();
+		$numPets = Pet::numOfPets($this->meta);
+		for($i=1;$i<($numPets+1);$i++) {
+			$pets[$i] = Pet::getPet($this->petOwnerId,$i,$this->meta);
+			$msgs .= TwilioHelper::petfileUrl($pets[$i]);			
+		}
+		return $msgs;
+	}
+}
+class TestUserHelper {
+	public function __construct() {
+		$this->setup();
+		echo $this->testGuardianMobileKey().'.<br>';
+		echo $this->testUpdateGuardianNumber().'<br>';
+		echo $this->testUpdatePrimaryNumber().'<br>';
+		echo $this->testUpdateNumbers().'<br>';
+		$this->cleanup().' ';
+	}
+	public function setup() {
+		$test = UserHelper::getGuardianNumber('110','1','1');
+		print_r($test); 
+	}
+	public function testGuardianMobileKey(){
+		echo UserHelper::guardianMobileKey('1','1');
+		return 0;
+	}
+	public function testUpdateGuardianNumber(){
+		echo UserHelper::updateGuardianNumber('110','1','1','5555555555');
+		return 0;
+	}
+	public function testUpdatePrimaryNumber(){
+		return 0;
+	}
+	public function testUpdateNumbers(){
+		return 0;
+	}
+	public function cleanup() {
+		echo UserHelper::updateGuardianNumber('110','1','1','(773) 609-2730');
+		//
+	}
+}
+
 class UserHelper {
 	const PRIMARY_NUM_KEY = "mobile_phone";
+	static public function findUser($pet_owner_id) {
+		$user = false;
+		$query = new WP_User_Query( array( 'meta_key' => 'pet_owner_id', 'meta_value' => $pet_owner_id ) );
+		if (count($query->results) == 1) {
+			$user = $query->results[0];
+		}
+		return $user;
+	}
 	static public function guardianMobileKey($petNum,$guardianNum) {
 		return "p{$petNum}_guardian_{$guardianNum}_mobile_phone";
+	}
+	static public function getGuardianNumber($userId,$petNum,$guardianNum) {
+		$meta = get_metadata('user', $userId);
+		$key = UserHelper::guardianMobileKey($petNum,$guardianNum);
+		return $meta[$key][0];
 	}
 	static public function updateGuardianNumber($userId,$petNum,$guardianNum,$newNum) {
 		$key = UserHelper::guardianMobileKey($petNum,$guardianNum);
 		update_user_meta( $userId, $key, $newNum );
+		return UserHelper::getGuardianNumber($userId,$petNum,$guardianNum);
 	}
 	static public function updatePrimaryNumber($userId,$newNum) {
 		$key = UserHelper::PRIMARY_NUM_KEY;
@@ -18,6 +116,7 @@ class UserHelper {
 		if($primary == $oldNum) {
 			UserHelper::updatePrimaryNumber($userId,$newNum);
 		}
+		$numPets = Pet::numOfPets($meta);
 		for($i=1;$i<($numPets+1);$i++) {
 			for($j=1;$j<6;$j++) {
 				$field = UserHelper::guardianMobileKey($i,$j);
@@ -34,32 +133,38 @@ class TwilioHelper {
 	const SUCCESS_FIELD = 'input_13';
 	const MESSAGE_FIELD = 'input_14';
 	static public function createConfirmation($successful,$message) {
-		$_POST[SUCCESS_FIELD] = $successful;
-		$_POST[MESSAGE_FIELD] = $message;
+		$_POST[TwilioHelper::SUCCESS_FIELD] = $successful;
+		$_POST[TwilioHelper::MESSAGE_FIELD] = $message;
 	}
-	static public function 	createMessage($post,$pets) {
+	static public function 	createMessage($post,$pet,$guardian=true) {
 		$name = $post['input_6_2'].' '.$post['input_6_3'].' '.$post['input_6_6'];
-		$phone .= $post['input_8'];
-		$msg = ' View the petfile(s) at '.TwilioHelper::petfileUrls($pets);
-		$msg .= $post['input_10'];
+		$phone = $post['input_10'];
+		$msg = $post['input_8'];
+		if($guardian) {
+			$msg .= ' View the petfile(s) at '.TwilioHelper::petfileUrl($pet);
+		}
 		$str = "Pet Guardian Alert! Message from First Responder $name, Phone: $phone. $msg";
 		return $str;
 	}
-	static public function petfileUrls($pets) {
-		$str = '';
-		foreach($pets as $pet) {
-			$str .= $pet->findPetfileUrl().' ';
-		}
+	static public function petfileUrl($pet) {
+		return $pet->findPetfileUrl().' ';
 	}
 	static public function sendMsg($str,$to) {
 		$account_sid = "ACb7c5f3d51adb05223c640ffaff969b46"; // Your Twilio account sid
 		$auth_token = "d54280461d5603d9cc2217ca2b79ab62"; // Your Twilio auth token
 		$client = new Services_Twilio($account_sid, $auth_token);
+		//$callbackUrl = 'http://www.millionpetchallenge.com/wp-json/petguardian/v1/twilio-response';
+		
+		if($_SERVER['SERVER_NAME']=='petguardian.staging.wpengine.com') {
+			$callbackUrl = 'http://petguardian.staging.wpengine.com/wp-json/petguardian/v1/twilio-response';
+		} else {
+			$callbackUrl = 'http://www.millionpetchallenge.com/wp-json/petguardian/v1/twilio-response';
+		}
 		$message = $client->account->messages->create(array( 
 			'To' => PhoneNumber::scrubPhone($to), 
 			'From' => " +13134448630", 
 			'Body' => $str, 
-			'StatusCallback' => "http://www.millionpetchallenge.com/wp-json/petguardian/v1/twilio-response" 
+			'StatusCallback' => $callbackUrl
 		));
 
 		$sid = $message->sid;
@@ -72,7 +177,7 @@ class Pet {
 	const PF3_ID = '58';
 	const PF4_ID = '59';
 	const PF5_ID = '60';
-	public $petOwnerId, $petfile;
+	public $petOwnerId, $petfile, $msg;
 	public function __construct( $petfile, $petOwnerId, $data ) {
 		$this->petOwnerId = $petOwnerId;
 		$this->petfile = $petfile;
@@ -95,7 +200,12 @@ class Pet {
 		return 'http://millionpetchallenge.com/guardian-access-petfile-1/?eid='.$last['id'];
 	}
 	static public function numOfPets($data) {
-		return $data['how_many_pets_owned'][0];
+		$pets = rgar($data,'how_many_pets_owned');
+		if(rgar($pets,0) != '') {
+			return (int) $pets[0];
+		} else {
+			return 0;
+		}		
 	}
 	static public function getPet($petOwnerId,$petNum,$data) {
 		$pet = new Pet($petNum,$petOwnerId,$data);
@@ -105,8 +215,8 @@ class Pet {
 			$arr = array('prefix','first_name','last_name','email','mobile_phone','response');
 			$hash = array();
 			foreach($arr as $a) {
-				$str = $prefix.$a;
-				$hash[$a] = $data[$str][0];
+				$tempArr = rgar($data,$prefix.$a);
+				$hash[$a] = rgar($tempArr,0);
 			}
 			$pet->setGuardian($i,$hash);
 		}
@@ -115,13 +225,13 @@ class Pet {
 }
 class Guardian {
 	public $prefix, $first_name, $last_name, $email, $mobile_phone, $response;
-	public function __construct( $data ) {
-		$this->prefix = $data['prefix'];
-		$this->first_name = $data['first_name'];
-		$this->last_name = $data['last_name'];
-		$this->email = $data['email'];
-		$this->mobile_phone = $data['mobile_phone'];
-		$this->response = $data['response'];
+	public function __construct( $meta ) {
+		$this->mobile_phone = rgar( $meta, 'mobile_phone' );
+		$this->response = rgar( $meta, 'response' );
+		$this->prefix = rgar( $meta, 'prefix' );
+		$this->first_name = rgar( $meta, 'first_name' );
+		$this->last_name = rgar( $meta, 'last_name' );
+		$this->email = rgar( $meta, 'email' );
 	}
 }
 class PhoneNumber {
@@ -190,15 +300,11 @@ class PhoneNumber {
 		GFAPI::add_entry( $entry );
 	}
 	public function update() {
-		if ($this->userId == 0) {
-			//update all of the numbers
-			$entries = PhoneNumber::gfFindNumber($this->number);
-			foreach ($entries as $entry) {
-				$entry[PhoneNumber::PHONE_FIELD] = $this->number;
-				$entry[PhoneNumber::HEALTH_FIELD] = $this->health;
-				$entry[PhoneNumber::USER_ID_FIELD] = $this->userId;
-				GFAPI::update_entry( $entry );
-			}
+		$entries = PhoneNumber::gfFindNumber($this->number);
+		foreach ($entries as $entry) {
+			$entry[PhoneNumber::PHONE_FIELD] = $this->number;
+			$entry[PhoneNumber::HEALTH_FIELD] = $this->health;
+			GFAPI::update_entry( $entry );
 		}
 	}
 	public static function gfFind($number,$userId=0) {
@@ -214,18 +320,29 @@ class PhoneNumber {
 		$search_criteria = array();
 		$search_criteria['field_filters'][] = array( 'key' => PhoneNumber::PHONE_FIELD, 'value' => $number );
 		$entries = GFAPI::get_entries( PhoneNumber::FORM_ID, $search_criteria );
-		if($last) {return $entries[0];}
-		else {return $entries;}
+		if( count($entries) > 0 ) {
+			if($last) {
+				return $entries[0];
+			} else {
+				return $entries;
+			}
+		} else {
+			return array();
+		}
 	}
 	public static function updateNumberHealth($number,$callStatus) {
-		if ($callStatus == 'sent' || $callStatus == 'failed' || $callStatus == 'undelivered' || $callStatus == 'delivered') {
-			$p = PhoneNumber::gfFindNumber($this->number);
+		if ($callStatus == 'sent' || $callStatus == 'failed' || $callStatus == 'undelivered' || $callStatus == 'delivered' && $number != "_____") {
+			$p = PhoneNumber::gfFindNumber($number,true);
 			$phoneNumber = new PhoneNumber($number,$p[PhoneNumber::HEALTH_FIELD],$p[PhoneNumber::USER_ID_FIELD]);
 			$phoneNumber->setHealth($callStatus);
+
 			$phoneNumber->update();
-			if($phoneNumber->status=="bad") {
-				//fix bad numbers in system
-				UserHelper::updateGuardianNumber($phoneNumber->userId,$petNum,$guardianNum);
+			if($phoneNumber->health=="bad") {
+				//fix bad numbers in meta data
+				$meta = get_metadata('user', $phoneNumber->userId);		
+				if($meta!==false) {
+					UserHelper::updateNumbers($phoneNumber->userId,$meta,$number,'5555555555');
+				}
 			}
 			return 'Updated';
 		} else {
@@ -246,32 +363,7 @@ class PhoneNumber {
 
 	}
 }
-class Test {
-	static public function phoneNumber() 	{
-		$a = PhoneNumber::gfFindNumber('7736411561');
-		$b = PhoneNumber::gfFind('7736092730','1');
-		$c = PhoneNumber::gfFind('7736411561','1');
 
-		print_r(count($a));
-		echo "<br>";
-		print_r(count($b));
-		echo "<br>";
-		print_r(count($c));		
-		echo "<br>";
-
-		$pn = PhoneNumber::lookup('7736092730','1');
-		print_r($pn);
-		//
-		$pn = PhoneNumber::lookup('0000000000','1');
-		print_r($pn);
-		print_r(PhoneNumber::gfFindNumber('0000000000'));
-		//
-		$pn = PhoneNumber::lookup('1234567890','1');
-		print_r($pn);
-		print_r(PhoneNumber::gfFindNumber('1234567890'));
-
-	}	
-}
 /**
  * The public-facing functionality of the plugin.
  *
@@ -281,6 +373,20 @@ class Test {
  * @package    Pet_Guardian_First_Responder
  * @subpackage Pet_Guardian_First_Responder/public
  */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * The public-facing functionality of the plugin.
@@ -324,7 +430,13 @@ class Pet_Guardian_First_Responder_Public {
 		$this->version = $version;
 	}
 	public function testPhoneNumber() {
-		Test::phoneNumber();
+		$test = new TestPhoneNumber();
+	}
+	public function testUserHelper() {
+		$test = new TestUserHelper();
+	}	
+	public function testPet() {
+		$test = new TestPet();
 	}
 	public function filterConfirmation($confirmation,$form,$entry) {
 		$confirmation = $entry['14'];
@@ -332,37 +444,31 @@ class Pet_Guardian_First_Responder_Public {
 	}
 	public function filterGform($form) {
 		$pet_owner_id = $_POST['input_11'];
-		$user = $this->findUser($pet_owner_id);
+		$user = UserHelper::findUser($pet_owner_id);
 		//if user not valid
 		if($user===false) {
 			$this->invalidUser();
 		} else {
-			$this->createAndSend($user);
+			$this->createAndSend($user,$pet_owner_id);
 		}
 	}
 	private function invalidUser() {
 			TwilioHelper::createConfirmation('false',"<p><b>Error: Invalid user ID provided, messages not sent!</b></p>");
 			return 0;
 	}
-	public function createAndSend($user) {
+	public function createAndSend($user,$pet_owner_id) {
 			$data = get_metadata('user', $user->ID);
 			$primary = $data['mobile_phone'][0];
 			$pets = array();
-			$numPets = Pets::numOfPets($data);
+			$numPets = Pet::numOfPets($data);
 			for($i=1;$i<($numPets+1);$i++) {
 				$pets[$i] = Pet::getPet($pet_owner_id,$i,$data);
+				$pets[$i]->msg = TwilioHelper::createMessage($_POST,$pets[$i]);
 			}
-			$str = TwilioHelper::createMessage($_POST,$pets);
+			$str = TwilioHelper::createMessage($_POST,rgar($pets,0),false);			
 			$this->sendAlerts($str,$primary,$pets,$user->ID);
 	}
-	public function findUser($pet_owner_id) {
-		$user = false;
-		$query = new WP_User_Query( array( 'meta_key' => 'pet_owner_id', 'meta_value' => $pet_owner_id ) );
-		if (count($query->results) == 1) {
-			$user = $query->results[0];
-		}
-		return $user;
-	}
+
 	public function sendAlerts($str,$primary,$pets,$userId) {
 		$okay = 'true';
 		$primary = $this->alertPrimary($str,$primary,$userId);
@@ -371,9 +477,9 @@ class Pet_Guardian_First_Responder_Public {
 		} else {
 			$msg = "Message sent to the primary pet owner. ";
 		}
-		$alerted = $this->alertGuardians($str,$pets,$userId);
+		$alerted = $this->alertGuardians($pets,$userId);
 		if($alerted->sent > 0 ) {
-			$msg .= "You successfully sent ".$alerted->sent." messages to Pet Guardians. ";
+			$msg .= "We are attempting to send ".$alerted->sent." messages to Pet Guardians. ";
 		}
 		if($alerted->failed > 0) {
 			$msg .= "Warning: We were unable to send ".$alerted->failed." messages to Pet Guardians. ";
@@ -382,41 +488,52 @@ class Pet_Guardian_First_Responder_Public {
 		TwilioHelper::createConfirmation($okay,$msg);
 	}
 	public function alertPrimary($str,$number,$userId) {
-		try {
-		   TwilioHelper::sendMsg($str,$number);
-		} catch (Exception $e) {
-			PhoneNumber::updateNumberHealth($phoneNumber->number,'failed'); 
-			UserHelper::updatePrimaryNumber($userId,"_____");
-			mail ( 'ianlowell@gmail.com' , 'Bad Number: Pet Guardian' , $e->getMessage() );
+		if($number == '' || $number =='_____') {
 			return 0;
 		}
-		return 1;
+		$phoneNumber = PhoneNumber::lookup($number,$userId);
+		if($phoneNumber->health != "bad") {
+			try {
+			   TwilioHelper::sendMsg($str,$number);
+			} catch (Exception $e) {
+				PhoneNumber::updateNumberHealth($number,'failed'); 
+				UserHelper::updatePrimaryNumber($userId,"_____");
+				mail ( 'admin@petguardianinc.com' , 'Bad Number: Pet Guardian' , $e->getMessage() );
+				return 0;
+			}
+			return 1;
+		}
 	}
-	public function alertGuardians($str,$pets,$userId) {
+	public function alertGuardians($pets,$userId) {
 		$alerts = new StdClass;
 		$alerts->sent = 0;
 		$alerts->total = 0;
 		foreach($pets as $p) {
 			$gNum = 1;
 			foreach($p->guardians as $g) {
-				//check the number, if it's new, save to the db
-				$phoneNumber = PhoneNumber::lookup($g->mobile_phone,$userId);
-				if($g->response==='1' && $phoneNumber->health != "bad") {
-					$alerts->sent++;
-					$alerts->total++;
-					try {
-					  TwilioHelper::sendMsg($str,$phoneNumber->number);
-					} catch (Exception $e) {
-						$alerts->sent--;
-						//mark number as bad, update user meta, send emails
-						PhoneNumber::updateNumberHealth($phoneNumber->number,'failed'); 
-						UserHelper::updateGuardianNumber($userId,$p->petfile,$gNum,$newNum);
-						mail ( 'ianlowell@gmail.com' , 'Bad Number: Pet Guardian' , $e->getMessage() );
-					}
+				if ( $g->mobile_phone == '' || $g->mobile_phone == '_____' ) {
+					//skip
 				} else {
-					//don't send to an invalid number
+					//check the number, if it's new, save to the db
+					$phoneNumber = PhoneNumber::lookup($g->mobile_phone,$userId);
+					if($g->response==='1' && $phoneNumber->health != "bad") {
+						$alerts->sent++;
+						$alerts->total++;
+						try {
+						  TwilioHelper::sendMsg($p->msg,$phoneNumber->number);
+						} catch (Exception $e) {
+							$alerts->sent--;
+							//mark number as bad, update user meta, send emails
+							PhoneNumber::updateNumberHealth($phoneNumber->number,'failed'); 
+							UserHelper::updateGuardianNumber($userId,$p->petfile,$gNum,'___');
+							mail ( 'admin@petguardianinc.com' , 'Bad Number: Pet Guardian' , $e->getMessage() );
+						}
+					} else {
+						//don't send to an invalid number
+					}
+					$gNum++;					
 				}
-				$gNum++;
+
 			}
 		}
 		$alerts->failed = $alerts->total - $alerts->sent;

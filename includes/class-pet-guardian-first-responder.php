@@ -165,20 +165,17 @@ class Pet_Guardian_First_Responder {
 	private function define_public_hooks() {
 
 		$plugin_public = new Pet_Guardian_First_Responder_Public( $this->get_plugin_name(), $this->get_version() );
+		$dummyFormId = '69';
 		$phoneFormId = '68';
 		$firstRespFormId = '62';
 
-		$phoneStr = "gform_pre_submission_{$phoneFormId}";
 		$firstRespString = "gform_pre_submission_{$firstRespFormId}";
 		$filterStr = "gform_confirmation_{$firstRespFormId}";
-
-
-		$this->loader->add_action( $phoneStr, $plugin_public, 'testPhoneNumber' );
 		$this->loader->add_action( $firstRespString, $plugin_public, 'filterGform' );
 		$this->loader->add_filter( $filterStr, $plugin_public, 'filterConfirmation', 10, 3 );
 		
-
-		$this->loader->add_action( $phoneStr, $plugin_public, 'testPhoneNumber' );
+		$phoneStr = "gform_pre_submission_{$dummyFormId}";
+		$this->loader->add_action( $phoneStr, $plugin_public, 'testPet' );
 
 		add_action( 'rest_api_init', function () {
 		    register_rest_route( 'petguardian/v1', '/twilio-response', array(
@@ -230,7 +227,4 @@ class Pet_Guardian_First_Responder {
 		return $this->version;
 	}
 
-}
-function ugly() {
-	return "FUCK YOU CRIMSON DEEP FRIED FLUFFY NAPALM DEATH DUST BUNNIES!";
 }
