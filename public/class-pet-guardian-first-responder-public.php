@@ -153,13 +153,7 @@ class TwilioHelper {
 		$account_sid = "ACb7c5f3d51adb05223c640ffaff969b46"; // Your Twilio account sid
 		$auth_token = "d54280461d5603d9cc2217ca2b79ab62"; // Your Twilio auth token
 		$client = new Services_Twilio($account_sid, $auth_token);
-		//$callbackUrl = 'http://www.millionpetchallenge.com/wp-json/petguardian/v1/twilio-response';
-		
-		if($_SERVER['SERVER_NAME']=='petguardian.staging.wpengine.com') {
-			$callbackUrl = 'http://petguardian.staging.wpengine.com/wp-json/petguardian/v1/twilio-response';
-		} else {
-			$callbackUrl = 'http://www.millionpetchallenge.com/wp-json/petguardian/v1/twilio-response';
-		}
+		$callbackUrl = TwilioHelper::prepUrl('/wp-json/petguardian/v1/twilio-response');
 		$message = $client->account->messages->create(array( 
 			'To' => PhoneNumber::scrubPhone($to), 
 			'From' => " +13134448630", 
@@ -168,6 +162,13 @@ class TwilioHelper {
 		));
 
 		$sid = $message->sid;
+	}
+	static public function prepUrl($url) {
+		$http = "http://";
+		if (array_key_exists('HTTPS', $_SERVER) {
+			$http = "https://";
+		} 
+		return $http.$_SERVER['SERVER_NAME'].$url;
 	}
 }
 class Pet {
@@ -197,7 +198,7 @@ class Pet {
 			'value' => $this->petOwnerId );
 		$entries = GFAPI::get_entries( $petfileArr[$this->petfile], $search_criteria );
 		$last = array_shift($entries);
-		return 'http://millionpetchallenge.com/guardian-access-petfile-1/?eid='.$last['id'];
+		$callbackUrl = TwilioHelper::prepUrl('/guardian-access-petfile-1/?eid='.$last['id']);
 	}
 	static public function numOfPets($data) {
 		$pets = rgar($data,'how_many_pets_owned');
