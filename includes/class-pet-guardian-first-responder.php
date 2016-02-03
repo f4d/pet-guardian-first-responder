@@ -170,9 +170,9 @@ class Pet_Guardian_First_Responder {
 		$firstRespFormId = '62';
 
 		$firstRespString = "gform_pre_submission_{$firstRespFormId}";
-		$filterStr = "gform_confirmation_{$firstRespFormId}";
+		//$filterStr = "gform_confirmation_{$firstRespFormId}";
 		$this->loader->add_action( $firstRespString, $plugin_public, 'filterGform' );
-		$this->loader->add_filter( $filterStr, $plugin_public, 'filterConfirmation', 10, 3 );
+		//$this->loader->add_filter( $filterStr, $plugin_public, 'filterConfirmation', 10, 3 );
 		
 		$phoneStr = "gform_pre_submission_{$dummyFormId}";
 		$this->loader->add_action( $phoneStr, $plugin_public, 'testPet' );
