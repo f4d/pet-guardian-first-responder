@@ -1,4 +1,13 @@
 <?php
+/**
+ * The public-facing functionality of the plugin.
+ *
+ * @link       http://example.com
+ * @since      1.0.0
+ *
+ * @package    Pet_Guardian_First_Responder
+ * @subpackage Pet_Guardian_First_Responder/public
+ */
 class TestPhoneNumber {
 	public function __construct() {
 		$a = PhoneNumber::gfFindNumber('7736411561');
@@ -368,30 +377,6 @@ class PhoneNumber {
 /**
  * The public-facing functionality of the plugin.
  *
- * @link       http://example.com
- * @since      1.0.0
- *
- * @package    Pet_Guardian_First_Responder
- * @subpackage Pet_Guardian_First_Responder/public
- */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * The public-facing functionality of the plugin.
- *
  * Defines the plugin name, version, and two examples hooks for how to
  * enqueue the admin-specific stylesheet and JavaScript.
  *
@@ -426,31 +411,6 @@ class Pet_Guardian_First_Responder_Public {
 	 * @param      string    $plugin_name       The name of the plugin.
 	 * @param      string    $version    The version of this plugin.
 	 */
-<<<<<<< HEAD
-	private function define_public_hooks() {
-
-		$plugin_public = new Pet_Guardian_First_Responder_Public( $this->get_plugin_name(), $this->get_version() );
-		$dummyFormId = '69';
-		$phoneFormId = '68';
-		$firstRespFormId = '62';
-
-		$firstRespString = "gform_pre_submission_{$firstRespFormId}";
-		//$filterStr = "gform_confirmation_{$firstRespFormId}";
-		$this->loader->add_action( $firstRespString, $plugin_public, 'filterGform' );
-		//$this->loader->add_filter( $filterStr, $plugin_public, 'filterConfirmation', 10, 3 );
-		
-		$phoneStr = "gform_pre_submission_{$dummyFormId}";
-		$this->loader->add_action( $phoneStr, $plugin_public, 'testPet' );
-
-		add_action( 'rest_api_init', function () {
-		    register_rest_route( 'petguardian/v1', '/twilio-response', array(
-		        'methods' => 'POST',
-		        'callback' => array('PhoneNumber','smsCallback')
-		    ) );
-		} );
-		//$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
-		//$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
-=======
 	public function __construct( $plugin_name, $version ) {
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
@@ -493,7 +453,6 @@ class Pet_Guardian_First_Responder_Public {
 			}
 			$str = TwilioHelper::createMessage($_POST,rgar($pets,0),false);			
 			$this->sendAlerts($str,$primary,$pets,$user->ID);
->>>>>>> 430c2e4adba212b2822f500789b6e30f6bf0d12b
 	}
 
 	public function sendAlerts($str,$primary,$pets,$userId) {
