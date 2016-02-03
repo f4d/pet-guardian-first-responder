@@ -165,7 +165,7 @@ class TwilioHelper {
 	}
 	static public function prepUrl($url) {
 		$http = "http://";
-		if (array_key_exists('HTTPS', $_SERVER) {
+		if (array_key_exists('HTTPS', $_SERVER)) {
 			$http = "https://";
 		} 
 		return $http.$_SERVER['SERVER_NAME'].$url;
