@@ -1,4 +1,5 @@
 <?php
+require("Tests.php");
 /**
  * The public-facing functionality of the plugin.
  *
@@ -8,89 +9,7 @@
  * @package    Pet_Guardian_First_Responder
  * @subpackage Pet_Guardian_First_Responder/public
  */
-class TestPhoneNumber {
-	public function __construct() {
-		$a = PhoneNumber::gfFindNumber('7736411561');
-		$b = PhoneNumber::gfFind('7736092730','1');
-		$c = PhoneNumber::gfFind('7736411561','1');
 
-		print_r(count($a));
-		echo "<br>";
-		print_r(count($b));
-		echo "<br>";
-		print_r(count($c));		
-		echo "<br>";
-
-		$pn = PhoneNumber::lookup('7736092730','1');
-		print_r($pn);
-		//
-		$pn = PhoneNumber::lookup('0000000000','1');
-		print_r($pn);
-		print_r(PhoneNumber::gfFindNumber('0000000000'));
-		//
-		$pn = PhoneNumber::lookup('1234567890','1');
-		print_r($pn);
-		print_r(PhoneNumber::gfFindNumber('1234567890'));
-
-	}	
-}
-class TestPet {
-	public function __construct() {
-		$this->setup();
-		echo($this->testPetFileUrls());
-		exit();
-		//$this->cleanup().' ';
-	}
-	public function setup() {
-		$this->petOwnerId = '9541487788';
-		$this->user = UserHelper::findUser($this->petOwnerId);
-		$this->meta = get_metadata('user', $this->user->ID);
-		update_user_meta( $this->user->ID, 'how_many_pets_owned', '1' );
-
-	}
-	public function testPetfileUrls() {
-		$msgs = '';
-		$pets = array();
-		$numPets = Pet::numOfPets($this->meta);
-		for($i=1;$i<($numPets+1);$i++) {
-			$pets[$i] = Pet::getPet($this->petOwnerId,$i,$this->meta);
-			$msgs .= TwilioHelper::petfileUrl($pets[$i]);			
-		}
-		return $msgs;
-	}
-}
-class TestUserHelper {
-	public function __construct() {
-		$this->setup();
-		echo $this->testGuardianMobileKey().'.<br>';
-		echo $this->testUpdateGuardianNumber().'<br>';
-		echo $this->testUpdatePrimaryNumber().'<br>';
-		echo $this->testUpdateNumbers().'<br>';
-		$this->cleanup().' ';
-	}
-	public function setup() {
-		$test = UserHelper::getGuardianNumber('110','1','1');
-		print_r($test); 
-	}
-	public function testGuardianMobileKey(){
-		echo UserHelper::guardianMobileKey('1','1');
-		return 0;
-	}
-	public function testUpdateGuardianNumber(){
-		echo UserHelper::updateGuardianNumber('110','1','1','5555555555');
-		return 0;
-	}
-	public function testUpdatePrimaryNumber(){
-		return 0;
-	}
-	public function testUpdateNumbers(){
-		return 0;
-	}
-	public function cleanup() {
-		echo UserHelper::updateGuardianNumber('110','1','1','(773) 609-2730');
-		//
-	}
-}
 
 class UserHelper {
 	const PRIMARY_NUM_KEY = "mobile_phone";
@@ -207,7 +126,8 @@ class Pet {
 			'value' => $this->petOwnerId );
 		$entries = GFAPI::get_entries( $petfileArr[$this->petfile], $search_criteria );
 		$last = array_shift($entries);
-		$callbackUrl = TwilioHelper::prepUrl('/guardian-access-petfile-1/?eid='.$last['id']);
+		$callbackUrl = TwilioHelper::prepUrl('/guardian-access-petfile-1/?eid='.$last['id']); 
+		return $callbackUrl;
 	}
 	static public function numOfPets($data) {
 		$pets = rgar($data,'how_many_pets_owned');
@@ -415,14 +335,10 @@ class Pet_Guardian_First_Responder_Public {
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
 	}
-	public function testPhoneNumber() {
-		$test = new TestPhoneNumber();
-	}
-	public function testUserHelper() {
-		$test = new TestUserHelper();
-	}	
 	public function testPet() {
+		echo ("Testing Plugin!");
 		$test = new TestPet();
+		$test = new TestPrimary();
 	}
 	public function filterConfirmation($confirmation,$form,$entry) {
 		$confirmation = $entry['14'];
