@@ -58,10 +58,10 @@ class UserHelper {
 	}
 }
 class TwilioHelper {
-	const SUCCESS_FIELD = 'input_13';
-	const MESSAGE_FIELD = 'input_14';
+	const MESSAGE_FIELD = 'input_12';
+	//
 	static public function createConfirmation($successful,$message) {
-		$_POST[TwilioHelper::SUCCESS_FIELD] = $successful;
+		//$_POST[TwilioHelper::SUCCESS_FIELD] = $successful;
 		$_POST[TwilioHelper::MESSAGE_FIELD] = $message;
 	}
 	static public function 	createMessage($post,$pet,$guardian=true) {
@@ -76,7 +76,9 @@ class TwilioHelper {
 	}
 	static public function createAndSend($user,$pet_owner_id,$post) {
 		$data = get_metadata('user', $user->ID);
-		$primary = $data['mobile_phone'][0];
+		$primary = rgar(rgar($data,'mobile_phone'),0);
+
+		//$data['mobile_phone'][0];
 		$pets = array();
 		$numPets = Pet::numOfPets($data);
 		for($i=1;$i<($numPets+1);$i++) {
@@ -440,7 +442,7 @@ class Pet_Guardian_First_Responder_Public {
 		$test = new TestPrimary();
 	}
 	public function filterConfirmation($confirmation,$form,$entry) {
-		$confirmation = $entry['14'];
+		$confirmation = $entry['12'];
 		return $confirmation;
 	}
 	public function filterGform($form) {
@@ -455,7 +457,7 @@ class Pet_Guardian_First_Responder_Public {
 		}
 	}
 	private function invalidUser() {
-			TwilioHelper::createConfirmation('false',"Error: The Pet Owner ID Number Provided Is Invalid, No Alert Messages Have Been Sent!");
+			TwilioHelper::createConfirmation('false',"Invalid Pet Owner ID submitted. No alerts have been sent, please verify the pet owner ID number and try again.");
 			return 0;
 	}
 
