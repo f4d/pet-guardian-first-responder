@@ -74,9 +74,90 @@ class TwilioHelper {
 		$str = "Pet Guardian Alert! First Responder: $name, Phone: $phone. $msg";
 		return $str;
 	}
-	static public function petfileUrl($pet) {
-		return $pet->findPetfileUrl().' ';
+	static public function createAndSend($user,$pet_owner_id,$post) {
+		$data = get_metadata('user', $user->ID);
+		$primary = $data['mobile_phone'][0];
+		$pets = array();
+		$numPets = Pet::numOfPets($data);
+		for($i=1;$i<($numPets+1);$i++) {
+			$pets[$i] = Pet::getPet($pet_owner_id,$i,$data);
+			$pets[$i]->msg = TwilioHelper::createMessage($post,$pets[$i]);
+		}
+		$str = TwilioHelper::createMessage($post,rgar($pets,0),false);			
+		TwilioHelper::sendAlerts($str,$primary,$pets,$user->ID);
 	}
+	static public function alertPrimary($str,$number,$userId) {
+		if($number == '' || $number =='_____') {
+			return 0;
+		}
+		$phoneNumber = PhoneNumber::lookup($number,$userId);
+		if($phoneNumber->health != "bad") {
+			try {
+			   TwilioHelper::sendMsg($str,$number);
+			} catch (Exception $e) {
+				PhoneNumber::updateNumberHealth($number,'failed'); 
+				UserHelper::updatePrimaryNumber($userId,"_____");
+				mail ( 'admin@petguardianinc.com' , 'Bad Number: Pet Guardian' , $e->getMessage() );
+				return 0;
+			}
+			return 1;
+		}
+	}
+	static public function alertGuardians($pets,$userId) {
+		$alerts = new StdClass;
+		$alerts->sent = 0;
+		$alerts->total = 0;
+		foreach($pets as $p) {
+			$gNum = 1;
+			foreach($p->guardians as $g) {
+				if ( $g->mobile_phone == '' || $g->mobile_phone == '_____' ) {
+					//skip
+				} else {
+					//check the number, if it's new, save to the db
+					$phoneNumber = PhoneNumber::lookup($g->mobile_phone,$userId);
+					if($g->response==='1' && $phoneNumber->health != "bad") {
+						$alerts->sent++;
+						$alerts->total++;
+						try {
+						  TwilioHelper::sendMsg($p->msg,$phoneNumber->number);
+						} catch (Exception $e) {
+							$alerts->sent--;
+							//mark number as bad, update user meta, send emails
+							PhoneNumber::updateNumberHealth($phoneNumber->number,'failed'); 
+							UserHelper::updateGuardianNumber($userId,$p->petfile,$gNum,'___');
+							mail ( 'admin@petguardianinc.com' , 'Bad Number: Pet Guardian' , $e->getMessage() );
+						}
+					} else {
+						//don't send to an invalid number
+					}
+					$gNum++;					
+				}
+
+			}
+		}
+		$alerts->failed = $alerts->total - $alerts->sent;
+		return $alerts;
+	}
+
+	static public function sendAlerts($str,$primary,$pets,$userId) {
+		$okay = 'true';
+		$primary = TwilioHelper::alertPrimary($str,$primary,$userId);
+		if($primary == 0) {
+			$msg = "Warning: We were unable to send a message to the primary pet owner. ";
+		} else {
+			$msg = "Message sent to the primary pet owner. ";
+		}
+		$alerted = TwilioHelper::alertGuardians($pets,$userId);
+		if($alerted->sent > 0 ) {
+			$msg .= "We are attempting to send ".$alerted->sent." messages to Pet Guardians. ";
+		}
+		if($alerted->failed > 0) {
+			$msg .= "Warning: We were unable to send ".$alerted->failed." messages to Pet Guardians. ";
+		}
+		if ($primary == 0 && $alerted->sent == 0) {$okay = 'false';}
+		TwilioHelper::createConfirmation($okay,$msg);
+	}
+
 	static public function sendMsg($str,$to) {
 		$account_sid = "ACb7c5f3d51adb05223c640ffaff969b46"; // Your Twilio account sid
 		$auth_token = "d54280461d5603d9cc2217ca2b79ab62"; // Your Twilio auth token
@@ -90,6 +171,9 @@ class TwilioHelper {
 		));
 
 		$sid = $message->sid;
+	}
+	static public function petfileUrl($pet) {
+		return $pet->findPetfileUrl().' ';
 	}
 	static public function prepUrl($url) {
 		$http = "http://";
@@ -294,6 +378,21 @@ class PhoneNumber {
 	}
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * The public-facing functionality of the plugin.
  *
@@ -345,103 +444,20 @@ class Pet_Guardian_First_Responder_Public {
 		return $confirmation;
 	}
 	public function filterGform($form) {
-		$pet_owner_id = $_POST['input_11'];
+		$post = $_POST;
+		$pet_owner_id = $post['input_11'];
 		$user = UserHelper::findUser($pet_owner_id);
 		//if user not valid
 		if($user===false) {
 			$this->invalidUser();
 		} else {
-			$this->createAndSend($user,$pet_owner_id);
+			TwilioHelper::createAndSend($user,$pet_owner_id,$post);
 		}
 	}
 	private function invalidUser() {
 			TwilioHelper::createConfirmation('false',"Error: The Pet Owner ID Number Provided Is Invalid, No Alert Messages Have Been Sent!");
 			return 0;
 	}
-	public function createAndSend($user,$pet_owner_id) {
-			$data = get_metadata('user', $user->ID);
-			$primary = $data['mobile_phone'][0];
-			$pets = array();
-			$numPets = Pet::numOfPets($data);
-			for($i=1;$i<($numPets+1);$i++) {
-				$pets[$i] = Pet::getPet($pet_owner_id,$i,$data);
-				$pets[$i]->msg = TwilioHelper::createMessage($_POST,$pets[$i]);
-			}
-			$str = TwilioHelper::createMessage($_POST,rgar($pets,0),false);			
-			$this->sendAlerts($str,$primary,$pets,$user->ID);
-	}
-
-	public function sendAlerts($str,$primary,$pets,$userId) {
-		$okay = 'true';
-		$primary = $this->alertPrimary($str,$primary,$userId);
-		if($primary == 0) {
-			$msg = "Warning: We were unable to send a message to the primary pet owner. ";
-		} else {
-			$msg = "Message sent to the primary pet owner. ";
-		}
-		$alerted = $this->alertGuardians($pets,$userId);
-		if($alerted->sent > 0 ) {
-			$msg .= "We are attempting to send ".$alerted->sent." messages to Pet Guardians. ";
-		}
-		if($alerted->failed > 0) {
-			$msg .= "Warning: We were unable to send ".$alerted->failed." messages to Pet Guardians. ";
-		}
-		if ($primary == 0 && $alerted->sent == 0) {$okay = 'false';}
-		TwilioHelper::createConfirmation($okay,$msg);
-	}
-	public function alertPrimary($str,$number,$userId) {
-		if($number == '' || $number =='_____') {
-			return 0;
-		}
-		$phoneNumber = PhoneNumber::lookup($number,$userId);
-		if($phoneNumber->health != "bad") {
-			try {
-			   TwilioHelper::sendMsg($str,$number);
-			} catch (Exception $e) {
-				PhoneNumber::updateNumberHealth($number,'failed'); 
-				UserHelper::updatePrimaryNumber($userId,"_____");
-				mail ( 'admin@petguardianinc.com' , 'Bad Number: Pet Guardian' , $e->getMessage() );
-				return 0;
-			}
-			return 1;
-		}
-	}
-	public function alertGuardians($pets,$userId) {
-		$alerts = new StdClass;
-		$alerts->sent = 0;
-		$alerts->total = 0;
-		foreach($pets as $p) {
-			$gNum = 1;
-			foreach($p->guardians as $g) {
-				if ( $g->mobile_phone == '' || $g->mobile_phone == '_____' ) {
-					//skip
-				} else {
-					//check the number, if it's new, save to the db
-					$phoneNumber = PhoneNumber::lookup($g->mobile_phone,$userId);
-					if($g->response==='1' && $phoneNumber->health != "bad") {
-						$alerts->sent++;
-						$alerts->total++;
-						try {
-						  TwilioHelper::sendMsg($p->msg,$phoneNumber->number);
-						} catch (Exception $e) {
-							$alerts->sent--;
-							//mark number as bad, update user meta, send emails
-							PhoneNumber::updateNumberHealth($phoneNumber->number,'failed'); 
-							UserHelper::updateGuardianNumber($userId,$p->petfile,$gNum,'___');
-							mail ( 'admin@petguardianinc.com' , 'Bad Number: Pet Guardian' , $e->getMessage() );
-						}
-					} else {
-						//don't send to an invalid number
-					}
-					$gNum++;					
-				}
-
-			}
-		}
-		$alerts->failed = $alerts->total - $alerts->sent;
-		return $alerts;
-	}
-
 
 
 	/**

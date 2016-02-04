@@ -7,6 +7,7 @@ class TestPrimary {
 		echo $this->invalidUser();
 		echo $this->validUser();
 		echo $this->sendMsg();
+		echo $this->simulateFirstResponse();
 		$this->cleanup();
 	}
 	public function setup() {
@@ -20,15 +21,24 @@ class TestPrimary {
 	public function validUser() {
 		$this->pet_owner_id = '9669739645';
 		$this->user = UserHelper::findUser($this->pet_owner_id);
-		print_r( get_metadata('user', $this->user->ID));
+		//print_r( get_metadata('user', $this->user->ID));
 		if($this->user->ID==115) {return "<br>Found user 115 by pet ID. PASS.<br>";}
 		return "invalidUser test failed.";
 	}
 	public function sendMsg() {
-		TwilioHelper::sendMsg('Ahoy, mate!','7736092730');
+		TwilioHelper::sendMsg('Testing Pet Guardian.','7736092730');
 		return "Sending message, check text to verify!<br>";
 	}
-
+	public function simulateFirstResponse() {
+		$post = array(
+			'input_6_2' => 'Mr.',
+			'input_6_3' => 'David',
+			'input_6_6' => 'Bowie',
+			'input_8' => '7736411561',
+			'input_10' => 'A message from outer space!'
+		);
+		TwilioHelper::createAndSend($this->user,$this->pet_owner_id,$post);
+	}
 	public function cleanup() {
 		//
 	}
