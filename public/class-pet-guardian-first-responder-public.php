@@ -77,8 +77,6 @@ class TwilioHelper {
 	static public function createAndSend($user,$pet_owner_id,$post) {
 		$data = get_metadata('user', $user->ID);
 		$primary = rgar(rgar($data,'mobile_phone'),0);
-
-		//$data['mobile_phone'][0];
 		$pets = array();
 		$numPets = Pet::numOfPets($data);
 		for($i=1;$i<($numPets+1);$i++) {
